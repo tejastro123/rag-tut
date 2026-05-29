@@ -1,0 +1,16 @@
+langchain
+langchain-core
+langchain-community
+langchain-ollama
+langchain-chroma
+langchain-huggingface
+
+chromadb
+sentence-transformers
+
+python-dotenv
+tiktoken
+pydantic-settings
+
+rank-bm25
+numpy
