@@ -28,4 +28,5 @@ dependencies = [
     "tokenizers==0.22.1",
     "sentence-transformers==5.1.0",
     "langsmith>=0.8.6",
+    "langchain-experimental>=0.4.2",
 ]

@@ -3,15 +3,19 @@
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_experimental.text_splitter import SemanticChunker
-from langchain_openai import OpenAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-
-embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+# Initialize the embedding model locally
+embeddings = HuggingFaceEmbeddings(
+    model_name="all-MiniLM-L6-v2",
+    model_kwargs={"trust_remote_code": True},
+    encode_kwargs={"normalize_embeddings": True},
+)
 
 
 # Sample document with distinct topics
@@ -48,6 +52,9 @@ Verify signatures using your webhook secret.
 Failed deliveries are retried with exponential backoff.
 """
 
+# =========================================================
+# RECURSIVE CHUNKING
+# =========================================================
 
 recursive_splitter = RecursiveCharacterTextSplitter(
     chunk_size=400, chunk_overlap=50, separators=["\n\n", "\n", ". ", " "]
@@ -90,6 +97,9 @@ def print_chunks(chunks, method_name):
 
 print_chunks(recursive_chunks, "RECURSIVE CHUNKING (fixed-size, 400 chars)")
 
+# =========================================================
+# SEMANTIC CHUNKING
+# =========================================================
 
 semantic_chunker = SemanticChunker(
     embeddings,
@@ -99,7 +109,15 @@ semantic_chunker = SemanticChunker(
 
 semantic_chunks = semantic_chunker.split_text(document)
 
+# Uncomment to inspect semantic chunks
+print_chunks(
+    semantic_chunks,
+    "SEMANTIC CHUNKING (meaning-based splits)",
+)
 
+# =========================================================
+# VECTOR STORES
+# =========================================================
 # Create two vector stores - one for each chunking method
 recursive_vectorstore = Chroma.from_texts(
     recursive_chunks, embeddings, collection_name="recursive_chunks"
@@ -109,8 +127,9 @@ semantic_vectorstore = Chroma.from_texts(
     semantic_chunks, embeddings, collection_name="semantic_chunks"
 )
 
-
-# Test queries
+# =========================================================
+# TEST QUERIES
+# =========================================================
 test_queries = [
     "How do I authenticate with OAuth2?",
     "What happens when I hit the rate limit?",
@@ -131,30 +150,30 @@ print("  RETRIEVAL TESTS")
 print(f"{'='*60}")
 
 for query in test_queries:
-    print("=" * 60)
     recursive_result = test_retrieval(query, recursive_vectorstore, "RECURSIVE")
     semantic_result = test_retrieval(query, semantic_vectorstore, "SEMANTIC")
 
-# print_chunks(semantic_chunks, "SEMANTIC CHUNKING (meaning-based splits)")
+# =========================================================
+# COMPARISON SUMMARY
+# =========================================================
 
-# # Comparison summary
-# print(f"\n{'='*60}")
-# print("  COMPARISON SUMMARY")
-# print(f"{'='*60}")
-# print(f"  {'Method':<30} {'Chunks':<10} {'Avg Size':<10} {'Topic Mixing'}")
-# print(f"  {'-'*60}")
+print(f"\n{'='*60}")
+print("  COMPARISON SUMMARY")
+print(f"{'='*60}")
+print(f"  {'Method':<30} {'Chunks':<10} {'Avg Size':<10} {'Topic Mixing'}")
+print(f"  {'-'*60}")
 
-# for name, chunks in [
-#     ("Recursive (fixed-size)", recursive_chunks),
-#     ("Semantic (meaning-based)", semantic_chunks),
-# ]:
-#     avg_size = sum(len(c) for c in chunks) / len(chunks)
-#     # Count chunks that contain multiple topics
-#     mixed = sum(1 for c in chunks if len(detect_topics(c)) > 1)
-#     mix_label = f"{mixed}/{len(chunks)} chunks" if mixed else "None"
-#     print(f"  {name:<30} {len(chunks):<10} {avg_size:<10.0f} {mix_label}")
+for name, chunks in [
+    ("Recursive (fixed-size)", recursive_chunks),
+    ("Semantic (meaning-based)", semantic_chunks),
+]:
+    avg_size = sum(len(c) for c in chunks) / len(chunks)
+    # Count chunks that contain multiple topics
+    mixed = sum(1 for c in chunks if len(detect_topics(c)) > 1)
+    mix_label = f"{mixed}/{len(chunks)} chunks" if mixed else "None"
+    print(f"  {name:<30} {len(chunks):<10} {avg_size:<10.0f} {mix_label}")
 
-# print(f"\n  Key Insight: Recursive splitting uses fixed character limits,")
-# print(f"  so it may split mid-topic or merge unrelated topics.")
-# print(f"  Semantic splitting uses embedding similarity to find natural")
-# print(f"  topic boundaries, keeping related content together.\n")
+print(f"\n  Key Insight: Recursive splitting uses fixed character limits,")
+print(f"  so it may split mid-topic or merge unrelated topics.")
+print(f"  Semantic splitting uses embedding similarity to find natural")
+print(f"  to find natural topic boundaries, keeping related content together.\n")
