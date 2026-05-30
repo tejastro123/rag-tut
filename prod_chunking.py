@@ -111,7 +111,7 @@ for i, chunk in enumerate(chunks, start=1):
 
 vectorstore = Chroma.from_texts(
     texts=chunks,
-    embedding=embeddings,
+    embedding=emb,
     collection_name="auth_docs",
 )
 

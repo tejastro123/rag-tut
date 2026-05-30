@@ -10,23 +10,39 @@ from langchain_classic.retrievers import EnsembleRetriever
 from langchain_community.retrievers import BM25Retriever
 from langchain_classic.retrievers import ParentDocumentRetriever
 from langchain_classic.storage import InMemoryStore
+
 from langchain_chroma import Chroma
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_ollama import ChatOllama
+from langchain_huggingface import HuggingFaceEmbeddings
+
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
+
 from dotenv import load_dotenv
 import logging
 
 load_dotenv()
 
+# LLM
+llm = ChatOllama(
+    model="llama3",
+    temperature=0,
+    base_url="http://localhost:11434",
+)
+
+# embedding
+emb = HuggingFaceEmbeddings(
+    model_name="all-MiniLM-L6-v2",
+)
+
 # Enable logging to see multi-query generation
 logging.basicConfig(level=logging.INFO, format="%(name)s - %(message)s")
 logging.getLogger("langchain.retrievers.multi_query").setLevel(logging.INFO)
 
-
+# Sample knowledge base for demos
 INFO_BURIED = [
     Document(
         page_content="""ACME AI SOLUTIONS - COMPANY HISTORY AND TECHNOLOGY STACK
@@ -173,7 +189,8 @@ def create_base_vectorstore():
     """Create a basic vector store for demos."""
     return Chroma.from_documents(
         documents=TECH_DOCS,
-        embedding=OpenAIEmbeddings(model="text-embedding-3-small"),
+        embedding=emb,
+        collection_name="tech_docs_multi_query",
     )
 
 
@@ -186,7 +203,6 @@ def demo_multi_query_retriever():
     print("=" * 60)
 
     vectorstore = create_base_vectorstore()
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
 
     # Create multi-query retriever
     retriever = MultiQueryRetriever.from_llm(
@@ -218,7 +234,7 @@ def demo_contextual_compression():
     print("=" * 60)
 
     vectorstore = create_base_vectorstore()
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+    llm = ChatOllama(model="llama3", temperature=0)
 
     # Create compressor
     compressor = LLMChainExtractor.from_llm(llm)
@@ -350,7 +366,7 @@ LangSmith provides observability for LangChain/LangGraph applications, offering 
     # Storage
     vectorstore = Chroma(
         collection_name="parent_child_demo",
-        embedding_function=OpenAIEmbeddings(model="text-embedding-3-small"),
+        embedding_function=emb,
     )
     store = InMemoryStore()
 
@@ -392,7 +408,7 @@ def demo_advanced_rag_chain():
     print("=" * 60)
 
     vectorstore = create_base_vectorstore()
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+    llm = ChatOllama(model="llama3", temperature=0)
 
     # Multi-query for better recall
     multi_retriever = MultiQueryRetriever.from_llm(
@@ -442,8 +458,8 @@ Answer:"""
 
 
 if __name__ == "__main__":
-    # demo_multi_query_retriever()
-    # demo_contextual_compression()
-    # demo_ensemble_hybrid_search()
-    # demo_parent_document_retriever()
+    demo_multi_query_retriever()
+    demo_contextual_compression()
+    demo_ensemble_hybrid_search()
+    demo_parent_document_retriever()
     demo_advanced_rag_chain()
