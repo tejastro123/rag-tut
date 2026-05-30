@@ -7,7 +7,7 @@ import hashlib
 import json
 from typing import Optional, Callable
 from functools import lru_cache
-from langchain_openai import ChatOpenAI
+from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from langsmith import traceable
 from dotenv import load_dotenv
@@ -21,9 +21,21 @@ class ModelRouter:
     """Route queries to appropriate model based on complexity."""
 
     def __init__(self):
-        self.cheap_model = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-        self.expensive_model = ChatOpenAI(model="gpt-4o", temperature=0)
-        self.classifier = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        self.cheap_model = ChatOllama(
+            model="llama3",
+            temperature=0,
+            base_url="http://localhost:11434",
+        )
+        self.expensive_model = ChatOllama(
+            model="mistral",
+            temperature=0,
+            base_url="http://localhost:11434",
+        )
+        self.classifier = ChatOllama(
+            model="llama3",
+            temperature=0,
+            base_url="http://localhost:11434",
+        )
 
     def classify_complexity(self, query: str) -> str:
         """Classify query complexity."""
@@ -54,11 +66,11 @@ Respond with only: simple or complex
 
         if complexity == "simple":
             model = self.cheap_model
-            model_name = "gpt-4o-mini"
+            model_name = "llama3"
             cost_per_1k = 0.00015  # Input cost
         else:
             model = self.expensive_model
-            model_name = "gpt-4o"
+            model_name = "mistral"
             cost_per_1k = 0.0025  # Input cost
 
         response = model.invoke(query)
@@ -104,7 +116,11 @@ class SemanticCache:
     def __init__(self, similarity_threshold: float = 0.9):
         self.cache = {}
         self.threshold = similarity_threshold
-        self.embedder = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        self.embedder = ChatOllama(
+            model="llama3",
+            temperature=0,
+            base_url="http://localhost:11434",
+        )
 
     def _hash_query(self, query: str) -> str:
         """Create hash of normalized query."""
@@ -137,7 +153,11 @@ class CachedLLM:
     """LLM wrapper with caching."""
 
     def __init__(self):
-        self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        self.llm = ChatOllama(
+            model="llama3",
+            temperature=0,
+            base_url="http://localhost:11434",
+        )
         self.cache = SemanticCache()
         self.cache_hits = 0
         self.cache_misses = 0
@@ -237,7 +257,11 @@ class BudgetedLLM:
     """LLM with token budgeting."""
 
     def __init__(self, max_tokens: int = 4000):
-        self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        self.llm = ChatOllama(
+            model="llama3",
+            temperature=0,
+            base_url="http://localhost:11434",
+        )
         self.budget = TokenBudget(max_tokens_per_request=max_tokens)
 
     @traceable(name="budgeted_invoke")
@@ -287,8 +311,8 @@ def demo_token_budgeting():
 
 
 if __name__ == "__main__":
-    # demo_model_routing()
-    # demo_caching()
+    demo_model_routing()
+    demo_caching()
     demo_token_budgeting()
 
     # Production version would:
