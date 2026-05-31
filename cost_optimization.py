@@ -108,8 +108,6 @@ def demo_model_routing():
 
 
 # === Semantic Caching ===
-
-
 class SemanticCache:
     """Cache responses with semantic similarity matching."""
 
